@@ -1838,7 +1838,22 @@ section { position: relative; z-index: 1; }
 /* ============================================================
  * 404 页面
  * ============================================================ */
-.page-404 { background: var(--bg); color: var(--fg); }
+.page-404,
+.page-404 html,
+.page-404 body {
+  background: var(--bg);
+  color: var(--fg);
+  height: 100%;
+  overflow: hidden;
+  /* 禁用触摸橡皮筋滚动 + 隐藏原生滚动条（404 页锁定不滚动） */
+  overscroll-behavior: none;
+  touch-action: pan-x;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.page-404 ::-webkit-scrollbar { width: 0; height: 0; display: none; }
+.page-404 ::-webkit-scrollbar-track { background: transparent; }
+.page-404 ::-webkit-scrollbar-thumb { background: transparent; }
 
 .e404 {
   position: relative;
@@ -1846,9 +1861,9 @@ section { position: relative; z-index: 1; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  min-height: 100dvh;
-  padding: 120px 24px 100px;
+  height: 100vh;
+  height: 100dvh;
+  padding: 110px 24px 90px;
   text-align: center;
   overflow: hidden;
 }
