@@ -24,13 +24,29 @@
 </head>
 <body>
 
+<!-- ══════════════════════════ 视频背景 ══════════════════════════
+     海报帧（poster）保证视频还没起来时不会出现黑色一闪
+     preload="metadata" 只抓头部几 KB，浏览器边播边拉数据
+     触摸端/弱网/reduced-motion 由 JS 改用 .is-static（海报静态显示） -->
+<div class="bg-video" id="bgVideo" aria-hidden="true">
+  <video id="videoBg" preload="metadata" muted playsinline loop
+         poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900'%3E%3Crect width='1600' height='900' fill='%23000'/%3E%3Cpath d='M288 384 L544 1216 L800 640 L1056 1216 L1312 384' fill='none' stroke='%23fff' stroke-opacity='.08' stroke-width='224' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
+    <source src="assets/video/background.mp4" type="video/mp4">
+  </video>
+  <div class="bg-video__veil"></div>
+</div>
+
 <!-- ══════════════════════════ 预加载 ══════════════════════════ -->
 <div class="preloader" id="preloader">
   <div class="preloader__inner">
     <div class="preloader__name" aria-label="MillonW">
       <span>M</span><span>I</span><span>L</span><span>L</span><span>O</span><span>N</span><span>W</span>
     </div>
-    <div class="preloader__bar"><i></i></div>
+    <div class="preloader__status">
+      <span class="preloader__label" id="preloaderText">正在加载</span>
+      <span class="preloader__pct" id="preloaderPct">0%</span>
+    </div>
+    <div class="preloader__bar"><i id="preloaderBar"></i></div>
   </div>
 </div>
 

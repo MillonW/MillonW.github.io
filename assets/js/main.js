@@ -237,22 +237,131 @@
   })();
 
   /* ══════════════════════════════════════════════════
-   * 3. 预加载
+   * 3. 预加载：跟踪真实资源加载并反映到进度条
+   *    —— 头像、视频元数据、B站数据；全部就绪 + 最短展示时间后才隐藏
    * ══════════════════════════════════════════════════ */
-  function hidePreloader() {
-    var p = $('#preloader');
-    if (!p) return;
-    var delay = reduced ? 0 : 1500;
-    setTimeout(function () {
-      p.classList.add('is-done');
-      document.body.classList.remove('is-locked');
-      startHeroAnimation();
-    }, delay);
-  }
-
   function startHeroAnimation() {
     $$('[data-split]').forEach(function (el) { el.classList.add('is-in'); });
     $$('.creed__line[data-creed]').forEach(function (el) { el.classList.add('is-in'); });
+  }
+
+  // 资源加载进度跟踪器
+  function createAssetLoader() {
+    var bar = $('#preloaderBar');
+    var text = $('#preloaderText');
+    var pct = $('#preloaderPct');
+    var value = 0;
+    var label = '正在加载';
+    var startTime = Date.now();
+    var minTime = 700;
+    var finished = false;
+    var onDone = [];
+
+    function render() {
+      var v = Math.min(1, value);
+      if (bar) bar.style.width = (v * 100).toFixed(0) + '%';
+      if (text) text.textContent = label;
+      if (pct) pct.textContent = Math.round(v * 100) + '%';
+    }
+
+    function check() {
+      if (value >= 1 && !finished) {
+        finished = true;
+        var elapsed = Date.now() - startTime;
+        var wait = Math.max(0, minTime - elapsed);
+        setTimeout(function () { onDone.forEach(function (cb) { cb(); }); }, wait);
+      }
+    }
+
+    return {
+      set: function (v, l) {
+        value = Math.max(value, v);
+        if (l != null) label = l;
+        render();
+        check();
+      },
+      onDone: function (cb) {
+        if (finished) cb();
+        else onDone.push(cb);
+      },
+      forceFinish: function () {
+        value = 1;
+        label = '已就绪';
+        render();
+        check();
+      }
+    };
+  }
+
+  // 加载单张图片（带超时兜底，避免永远 pending）
+  function loadImage(src, timeout) {
+    return new Promise(function (resolve) {
+      var done = false;
+      function finish() { if (!done) { done = true; resolve(); } }
+      var img = new Image();
+      img.onload = img.onerror = finish;
+      img.src = src;
+      setTimeout(finish, timeout || 4500);
+    });
+  }
+
+  // 视频背景控制器：自动判定是否降级为静态海报
+  function initBgVideo() {
+    var wrap = $('#bgVideo');
+    if (!wrap) return { preload: function(){return Promise.resolve();}, play: function(){} };
+
+    var reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var reducedData = matchMedia('(prefers-reduced-data: reduce)').matches;
+    var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    var slowNet = conn && /^(slow-2g|2g|3g)$/.test(conn.effectiveType || '');
+    var saveData = conn && conn.saveData;
+    var narrow = window.innerWidth < 720;
+    var touchOnly = matchMedia('(hover: none) and (pointer: coarse)').matches;
+
+    // 触摸端 / 弱网 / 减少动效 / 减少数据：降级为静态海报
+    if (reducedMotion || reducedData || saveData || slowNet || narrow || touchOnly) {
+      wrap.classList.add('is-static');
+      return { preload: function(){return Promise.resolve();}, play: function(){} };
+    }
+
+    var video = wrap.querySelector('video');
+    var loaded = false;
+    var started = false;
+
+    function markReady() {
+      loaded = true;
+      wrap.classList.add('is-ready');
+    }
+    video.addEventListener('loadeddata', markReady);
+    video.addEventListener('error', function () {
+      wrap.classList.add('is-static');
+      loaded = true;  // 让流程不卡住
+    });
+
+    // Tab 切到后台时暂停，省 CPU / 电
+    document.addEventListener('visibilitychange', function () {
+      if (!loaded) return;
+      if (document.hidden) video.pause();
+      else if (started) video.play().catch(function(){});
+    });
+
+    return {
+      preload: function () {
+        return new Promise(function (resolve) {
+          if (loaded) return resolve();
+          var done = false;
+          function finish() { if (!done) { done = true; resolve(); } }
+          video.addEventListener('loadedmetadata', finish, { once: true });
+          video.addEventListener('error', finish, { once: true });
+          setTimeout(finish, 3500);
+        });
+      },
+      play: function () {
+        if (!loaded || started) return;
+        started = true;
+        video.play().catch(function(){});
+      }
+    };
   }
 
   /* ══════════════════════════════════════════════════
@@ -1063,21 +1172,18 @@
 
   /* ══════════════════════════════════════════════════
    * 12. 启动
+   *    同步部分照常跑；异步加载头像 / 视频 / B站数据，按真实进度推进
    * ══════════════════════════════════════════════════ */
   function boot() {
     document.body.classList.add('is-locked');
 
-    // 保险：无论后续脚本是否出错，5 秒后一定解除预加载层，
-    // 避免用户被永久白屏/遮罩锁死在外面
-    setTimeout(function () {
-      var p = $('#preloader');
-      if (p && !p.classList.contains('is-done')) {
-        p.classList.add('is-done');
-        document.body.classList.remove('is-locked');
-        startHeroAnimation();
-      }
-    }, 5000);
+    var loader = createAssetLoader();
+    loader.set(0.06, '启动');
 
+    // 保险：5 秒后无论如何强制解锁，避免脚本出错把用户锁死
+    setTimeout(function () { loader.forceFinish(); }, 5000);
+
+    // 同步部分
     Theme.init();
     initNav();
     initFab();
@@ -1089,7 +1195,6 @@
     initHeroParallax();
     initEggs();
 
-    // 首屏文字拆分，等待预加载结束后触发动画
     $$('[data-split]').forEach(splitText);
     $$('.creed__line[data-creed]').forEach(function (el) {
       var span = document.createElement('span');
@@ -1107,18 +1212,59 @@
     var yr = $('#year');
     if (yr) yr.textContent = new Date().getFullYear();
 
-    // 数据：优先实时拉 B站；失败则回落到 fallback.js 的兜底快照
+    loader.set(0.16, '加载资源');
+
+    // 异步部分：进度随真实加载推进
+    var bg = initBgVideo();
+    var tasks = [];
+
+    // 头像：作为首屏关键资源显式 preload
+    tasks.push(loadImage('assets/img/avatar.jpg').then(function () {
+      loader.set(0.5, '头像就绪');
+    }));
+
+    // 视频背景元数据（preload=metadata 只取头部几 KB）
+    tasks.push(bg.preload().then(function () {
+      loader.set(0.78, '视频就绪');
+    }));
+
+    // B 站数据：成功才计入进度，失败也不卡
     if (window.BiliAPI) {
-      window.BiliAPI.getAll().then(function (res) {
+      tasks.push(window.BiliAPI.getAll().then(function (res) {
         renderStats(res.profile, res.source, res.videos);
         Works.init(res.videos);
-      });
+        loader.set(0.95, '数据就绪');
+      }).catch(function () {
+        renderStats({}, 'cache', []);
+        Works.init([]);
+        loader.set(0.95, '数据就绪');
+      }));
     } else {
       renderStats({}, 'cache', []);
       Works.init([]);
+      loader.set(0.95, '数据就绪');
     }
 
-    hidePreloader();
+    // window.load：所有静态资源（字体、图片、iframe…）已就绪
+    if (document.readyState !== 'complete') {
+      tasks.push(new Promise(function (resolve) {
+        window.addEventListener('load', resolve, { once: true });
+      }));
+    }
+
+    // 全部就绪 → 进度到 100% → 触发 onDone（最短展示时间后隐藏）
+    Promise.all(tasks).then(function () {
+      loader.set(1, '已就绪');
+    });
+
+    loader.onDone(function () {
+      var p = $('#preloader');
+      if (!p || p.classList.contains('is-done')) return;
+      p.classList.add('is-done');
+      document.body.classList.remove('is-locked');
+      startHeroAnimation();
+      bg.play();
+    });
   }
 
   if (document.readyState === 'loading') {

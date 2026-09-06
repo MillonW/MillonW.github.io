@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="robots" content="noindex">
+<title>404 · 此路不通 — MillonW</title>
+<meta name="description" content="信号丢失。这条路径上没有内容。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20fill='%23000'/%3E%3Cpath%20d='M18%2024%20L34%2076%20L50%2040%20L66%2076%20L82%2024'%20fill='none'%20stroke='%23fff'%20stroke-width='14'%20stroke-linejoin='round'%20stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="page-404">
+
+<!-- 顶部跑马灯 -->
+<div class="e404__marquee e404__marquee--top" aria-hidden="true">
+  <div class="e404__marquee-track">
+    <span>404 · 此路不通 · SIGNAL LOST · 路径不存在 · 404 · 此路不通 · SIGNAL LOST · 路径不存在 · </span>
+    <span>404 · 此路不通 · SIGNAL LOST · 路径不存在 · 404 · 此路不通 · SIGNAL LOST · 路径不存在 · </span>
+  </div>
+</div>
+
+<!-- 装饰层（复用主页风格） -->
+<div class="grain" aria-hidden="true"></div>
+<div class="grid-bg" aria-hidden="true"><div class="grid-bg__inner"></div></div>
+
+<!-- 主内容 -->
+<main class="e404">
+
+  <!-- 雷达扫描背景 -->
+  <div class="e404__radar" aria-hidden="true">
+    <svg viewBox="0 0 400 400" width="100%" height="100%">
+      <defs>
+        <linearGradient id="e404Grad" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stop-color="currentColor" stop-opacity="0"/>
+          <stop offset="1" stop-color="currentColor" stop-opacity=".55"/>
+        </linearGradient>
+      </defs>
+      <circle cx="200" cy="200" r="190" fill="none" stroke="currentColor" stroke-width="1" opacity=".18"/>
+      <circle cx="200" cy="200" r="140" fill="none" stroke="currentColor" stroke-width="1" opacity=".13"/>
+      <circle cx="200" cy="200" r="90"  fill="none" stroke="currentColor" stroke-width="1" opacity=".09"/>
+      <line x1="200" y1="8" x2="200" y2="392" stroke="currentColor" stroke-width="1" opacity=".07"/>
+      <line x1="8"   y1="200" x2="392" y2="200" stroke="currentColor" stroke-width="1" opacity=".07"/>
+      <g class="e404__sweep">
+        <path d="M200,200 L388,200 A188,188 0 0,0 200,12 Z" fill="url(#e404Grad)"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- 三个大数字，中间是旋转的环 -->
+  <div class="e404__num">
+    <span class="e404__digit">4</span>
+    <span class="e404__digit e404__digit--mid"><span class="e404__orbit"></span></span>
+    <span class="e404__digit">4</span>
+  </div>
+
+  <h1 class="e404__title" data-scramble>SIGNAL LOST</h1>
+  <p class="e404__desc">这条路径上没有内容。<br>也许你输入错了地址，也许链接已经过期。</p>
+
+  <div class="e404__row">
+    <a href="./" class="e404__home"><span>← 回到首页</span></a>
+    <span class="e404__coord" id="coord">LON — · LAT —</span>
+  </div>
+</main>
+
+<!-- 底部跑马灯 -->
+<div class="e404__marquee e404__marquee--bot" aria-hidden="true">
+  <div class="e404__marquee-track e404__marquee-track--rev">
+    <span>NOT FOUND · 没有信号 · 迷路了吗 · </span>
+    <span>NOT FOUND · 没有信号 · 迷路了吗 · </span>
+  </div>
+</div>
+
+<script>
+(function () {
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // 跑马灯复制一份保证无缝循环
+  document.querySelectorAll('.e404__marquee-track').forEach(function (t) {
+    var first = t.firstElementChild;
+    if (first && first.nextElementSibling === null) t.appendChild(first.cloneNode(true));
+  });
+
+  // 故障文本：悬停时字符随机滚动
+  var CHARS = '!<>-_\\/[]{}—=+*^?#________01';
+  function scramble(el) {
+    if (el.dataset.scrambling) return;
+    var orig = el.textContent;
+    var queue = [];
+    for (var i = 0; i < orig.length; i++) queue.push({ from: orig[i] });
+    el.dataset.scrambling = '1';
+    var frame = 0, total = 24;
+    function tick() {
+      frame++;
+      var done = 0;
+      var out = '';
+      for (var i = 0; i < queue.length; i++) {
+        var q = queue[i];
+        if (frame >= total) { out += q.from; done++; continue; }
+        if (Math.random() < .32) {
+          out += CHARS[Math.floor(Math.random() * CHARS.length)];
+        } else {
+          out += q.from;
+          done++;
+        }
+      }
+      el.textContent = out;
+      if (done < queue.length) requestAnimationFrame(tick);
+      else { el.textContent = orig; delete el.dataset.scrambling; }
+    }
+    requestAnimationFrame(tick);
+  }
+  document.querySelectorAll('[data-scramble]').forEach(function (el) {
+    el.addEventListener('mouseenter', function () { if (!reduced) scramble(el); });
+  });
+
+  // 坐标随机跳动
+  var coord = document.getElementById('coord');
+  if (coord) {
+    function rnd() { return (Math.random() * 180 - 90).toFixed(4); }
+    setInterval(function () {
+      coord.textContent = 'LON ' + rnd() + '°  ·  LAT ' + rnd() + '°';
+    }, 1800);
+  }
+})();
+</script>
+</body>
+</html>

@@ -42,14 +42,24 @@ git push
 ## 目录
 
 ```
-index.html              页面结构
-.nojekyll               禁用 Jekyll
-assets/css/style.css    样式（设计令牌 / 组件 / 动效 / 响应式）
-assets/js/fallback.js   B 站数据兜底快照
-assets/js/bili.js       数据接入层（实时优先 → 回落兜底）
-assets/js/main.js       内容配置 + 渲染 + 交互
-assets/img/avatar.jpg   头像
+index.html                       页面结构
+404.html                         404 页面（GitHub Pages 自动使用）
+video.mp4 → assets/video/...     （已搬到 assets/video/background.mp4）
+.nojekyll                        禁用 Jekyll
+assets/css/style.css             样式（设计令牌 / 组件 / 动效 / 响应式 / 多端适配）
+assets/js/fallback.js            B 站数据兜底快照
+assets/js/bili.js                数据接入层（实时优先 → 回落兜底）
+assets/js/main.js                内容配置 + 渲染 + 交互 + 真实加载进度
+assets/img/avatar.jpg            头像
+assets/video/background.mp4      页面背景视频（10.6 MB / 1.89 s 循环）
 ```
+
+## 几个特性
+
+- **真实加载进度**：预加载条不再「假跑」，而是跟踪头像、背景视频元数据、B 站数据三类资源 + `window.load` 事件，全部就绪 + 最短展示时间后才隐藏
+- **视频背景**：`preload="metadata"` 仅取头部几 KB，浏览器边播边拉；触摸端 / 弱网 / `prefers-reduced-motion` / `prefers-reduced-data` 自动降级为静态海报；Tab 切后台自动暂停
+- **404 页**：项目根的 `404.html`，GitHub Pages 自动识别。大号 404 + 旋转雷达 + 上下双向跑马灯 + 悬停故障文本 + 跳动的「坐标」
+- **多端适配**：iOS 安全区 / 横屏移动 / 折叠屏 / 强制颜色（Windows 高对比度）/ 触摸设备 / 减弱动效 / 减弱数据均做了专项兜底
 
 ## 约定与坑
 
