@@ -12,14 +12,6 @@
 </head>
 <body class="page-404">
 
-<!-- 顶部跑马灯 -->
-<div class="e404__marquee e404__marquee--top" aria-hidden="true">
-  <div class="e404__marquee-track">
-    <span>404 · 此路不通 · SIGNAL LOST · 路径不存在 · 404 · 此路不通 · SIGNAL LOST · 路径不存在 · </span>
-    <span>404 · 此路不通 · SIGNAL LOST · 路径不存在 · 404 · 此路不通 · SIGNAL LOST · 路径不存在 · </span>
-  </div>
-</div>
-
 <!-- 装饰层（复用主页风格） -->
 <div class="grain" aria-hidden="true"></div>
 <div class="grid-bg" aria-hidden="true"><div class="grid-bg__inner"></div></div>
@@ -63,23 +55,9 @@
   </div>
 </main>
 
-<!-- 底部跑马灯 -->
-<div class="e404__marquee e404__marquee--bot" aria-hidden="true">
-  <div class="e404__marquee-track e404__marquee-track--rev">
-    <span>NOT FOUND · 没有信号 · 迷路了吗 · </span>
-    <span>NOT FOUND · 没有信号 · 迷路了吗 · </span>
-  </div>
-</div>
-
 <script>
 (function () {
   var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // 跑马灯复制一份保证无缝循环
-  document.querySelectorAll('.e404__marquee-track').forEach(function (t) {
-    var first = t.firstElementChild;
-    if (first && first.nextElementSibling === null) t.appendChild(first.cloneNode(true));
-  });
 
   // 故障文本：悬停时字符随机滚动
   var CHARS = '!<>-_\\/[]{}—=+*^?#________01';
