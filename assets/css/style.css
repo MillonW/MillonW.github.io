@@ -1969,41 +1969,11 @@ section { position: relative; z-index: 1; }
   opacity: .42;
 }
 
-/* 上下两条跑马灯 */
-.e404__marquee {
-  position: fixed;
-  left: 0; right: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 3;
-  border-top: 1px solid var(--fg);
-  border-bottom: 1px solid var(--fg);
-  background: var(--fg);
-  color: var(--bg);
-}
-.e404__marquee--top { top: 0; }
-.e404__marquee--bot { bottom: 0; }
-.e404__marquee-track {
-  display: flex;
-  width: max-content;
-  animation: e404-marquee 28s linear infinite;
-  font-size: 11px;
-  letter-spacing: .25em;
-  font-weight: 600;
-  padding: 6px 0;
-}
-.e404__marquee-track > span { padding-right: 1.4em; white-space: nowrap; }
-.e404__marquee-track--rev { animation-direction: reverse; animation-duration: 34s; }
-@keyframes e404-marquee {
-  from { transform: translate3d(0,0,0); }
-  to { transform: translate3d(-50%,0,0); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .e404__sweep, .e404__orbit, .e404__marquee-track { animation: none !important; }
+  .e404__sweep, .e404__orbit { animation: none !important; }
 }
 @media (max-width: 600px) {
-  .e404 { padding: 96px 20px 80px; }
+  .e404 { padding: 80px 20px 64px; }
   .e404__home { padding: 12px 22px; font-size: 12.5px; }
   .e404__row { gap: 18px; }
 }
