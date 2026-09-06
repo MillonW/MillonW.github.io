@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>MillonW — 科技服务于人，人文点亮世界</title>
+<meta name="description" content="MillonW · B站UP主 / 全栈开发者 / 狐学科技工作室 & 本析工作室创始人。科技服务于人，人文点亮世界。">
+<meta name="keywords" content="MillonW,狐学科技,本析工作室,NormDigest,全栈开发,PHP,Python,JavaScript,ArkTS,Node.js,B站UP主">
+
+<!-- Open Graph -->
+<meta property="og:type" content="profile">
+<meta property="og:title" content="MillonW — 科技服务于人，人文点亮世界">
+<meta property="og:description" content="B站UP主 / 全栈开发者 / 狐学科技 & 本析工作室创始人">
+<meta property="og:image" content="assets/img/avatar.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20fill='%23000'/%3E%3Cpath%20d='M18%2024%20L34%2076%20L50%2040%20L66%2076%20L82%2024'%20fill='none'%20stroke='%23fff'%20stroke-width='14'%20stroke-linejoin='round'%20stroke-linecap='round'/%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://i0.hdslb.com">
+<link rel="preconnect" href="https://i1.hdslb.com">
+<link rel="preconnect" href="https://i2.hdslb.com">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<!-- ══════════════════════════ 预加载 ══════════════════════════ -->
+<div class="preloader" id="preloader">
+  <div class="preloader__inner">
+    <div class="preloader__name" aria-label="MillonW">
+      <span>M</span><span>I</span><span>L</span><span>L</span><span>O</span><span>N</span><span>W</span>
+    </div>
+    <div class="preloader__bar"><i></i></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ 装饰层 ══════════════════════════ -->
+<div class="grain" aria-hidden="true"></div>
+<div class="grid-bg" aria-hidden="true"><div class="grid-bg__inner"></div></div>
+<div class="spotlight" id="spotlight" aria-hidden="true"></div>
+
+<div class="cursor" id="cursor" aria-hidden="true"><i></i></div>
+<div class="scroll-progress" aria-hidden="true"><i id="scrollBar"></i></div>
+
+<!-- ══════════════════════════ 导航 ══════════════════════════ -->
+<!-- 浮动控件：页面较长，导航自动隐藏后仍可随时切主题 / 回顶部 -->
+<div class="fab" id="fab">
+  <button class="fab__btn" id="fabTheme" type="button" aria-label="切换黑白配色" title="切换黑白配色">
+    <svg class="ico-sun" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+      <circle cx="12" cy="12" r="4.2" fill="currentColor"/>
+      <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <path d="M12 2v2.6M12 19.4V22M2 12h2.6M19.4 12H22M4.9 4.9l1.9 1.9M17.2 17.2l1.9 1.9M19.1 4.9l-1.9 1.9M6.8 17.2l-1.9 1.9"/>
+      </g>
+    </svg>
+    <svg class="ico-moon" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+      <path d="M20.5 14.6A8.6 8.6 0 1 1 9.4 3.5a6.9 6.9 0 0 0 11.1 11.1z" fill="currentColor"/>
+    </svg>
+  </button>
+  <button class="fab__btn" id="fabTop" type="button" aria-label="回到顶部" title="回到顶部">
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+      <path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+</div>
+
+<header class="nav" id="nav">
+  <div class="nav__inner">
+    <a href="#hero" class="nav__logo" data-scroll>
+      <span class="nav__logo-mark">W</span>
+      <span class="nav__logo-text">MillonW</span>
+    </a>
+
+    <nav class="nav__links" aria-label="主导航">
+      <a href="#works" data-scroll><span>作品</span></a>
+      <a href="#stack" data-scroll><span>技术</span></a>
+      <a href="#studio" data-scroll><span>工作室</span></a>
+      <a href="#timeline" data-scroll><span>历程</span></a>
+      <a href="#contact" data-scroll><span>联系</span></a>
+    </nav>
+
+    <div class="nav__right">
+      <button class="theme-toggle" id="themeToggle" aria-label="切换黑白配色" title="切换黑白配色">
+        <span class="theme-toggle__track">
+          <i class="theme-toggle__thumb"></i>
+          <svg class="ico-sun" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.2" fill="currentColor"/>
+            <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M12 2v2.6M12 19.4V22M2 12h2.6M19.4 12H22M4.9 4.9l1.9 1.9M17.2 17.2l1.9 1.9M19.1 4.9l-1.9 1.9M6.8 17.2l-1.9 1.9"/>
+            </g>
+          </svg>
+          <svg class="ico-moon" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
+            <path d="M20.5 14.6A8.6 8.6 0 1 1 9.4 3.5a6.9 6.9 0 0 0 11.1 11.1z" fill="currentColor"/>
+          </svg>
+        </span>
+      </button>
+
+      <button class="nav__burger" id="burger" aria-label="打开菜单" aria-expanded="false">
+        <i></i><i></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- 移动端抽屉 -->
+<div class="drawer" id="drawer" aria-hidden="true">
+  <nav class="drawer__links">
+    <a href="#works" data-scroll><em>01</em> 作品</a>
+    <a href="#stack" data-scroll><em>02</em> 技术</a>
+    <a href="#studio" data-scroll><em>03</em> 工作室</a>
+    <a href="#timeline" data-scroll><em>04</em> 历程</a>
+    <a href="#contact" data-scroll><em>05</em> 联系</a>
+  </nav>
+  <div class="drawer__foot">
+    <span>科技服务于人，人文点亮世界</span>
+  </div>
+</div>
+
+<main id="main">
+
+<!-- ══════════════════════════ HERO ══════════════════════════ -->
+<section class="hero" id="hero">
+  <div class="hero__inner">
+
+    <div class="hero__avatar reveal" aria-label="MillonW 头像">
+      <img src="assets/img/avatar.jpg" alt="MillonW 头像" width="84" height="84" decoding="async">
+    </div>
+
+    <div class="hero__tag reveal">
+      <i class="dot"></i>
+      <span data-live-label>内容创作者 × 全栈开发者</span>
+    </div>
+
+    <h1 class="hero__title">
+      <span class="hero__title-line" data-split>MillonW</span>
+    </h1>
+
+    <div class="hero__roles">
+      <span class="hero__role-static">I build</span>
+      <span class="hero__role-rotator" id="roleRotator">
+        <span class="is-active">鬼畜爆款</span>
+        <span>影评解说</span>
+        <span>8D 音乐</span>
+        <span>全栈应用</span>
+        <span>AI Agent</span>
+      </span>
+    </div>
+
+    <!-- 双轨：创作者 / 工程师 -->
+    <div class="tracks" id="tracks">
+      <a class="track reveal" href="#works" data-scroll data-track="creator">
+        <div class="track__head">
+          <span class="track__no">TRACK 01</span>
+          <span class="track__arrow">↗</span>
+        </div>
+        <h3 class="track__title">CREATOR</h3>
+        <p class="track__desc">内容创作者 — 鬼畜 / 解说 / 音乐 / 人文深度稿</p>
+        <div class="track__meta"><b data-stat="follower">—</b><span>粉丝</span></div>
+      </a>
+      <a class="track reveal" href="#stack" data-scroll data-track="engineer">
+        <div class="track__head">
+          <span class="track__no">TRACK 02</span>
+          <span class="track__arrow">↗</span>
+        </div>
+        <h3 class="track__title">ENGINEER</h3>
+        <p class="track__desc">全栈开发者 — PHP / Python / JS / ArkTS / Node.js</p>
+        <div class="track__meta"><b data-stat="archiveCount">—</b><span>投稿</span></div>
+      </a>
+    </div>
+
+    <!-- 名言视觉锤 -->
+    <div class="creed" id="creed">
+      <p class="creed__line" data-creed>科技服务于人</p>
+      <p class="creed__line creed__line--alt" data-creed>人文点亮世界</p>
+    </div>
+
+    <div class="hero__cta reveal">
+      <a href="#works" class="btn btn--solid" data-scroll>
+        <span>浏览作品</span>
+        <i>→</i>
+      </a>
+      <a href="#contact" class="btn btn--ghost" data-scroll>
+        <span>聊聊合作</span>
+      </a>
+    </div>
+  </div>
+
+  <a class="scroll-hint" href="#stats" data-scroll aria-label="向下滚动">
+    <span>SCROLL</span>
+    <i></i>
+  </a>
+</section>
+
+<!-- ══════════════════════════ 数据战绩 ══════════════════════════ -->
+<section class="stats" id="stats">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-head__no">01</span>
+      <h2 class="sec-head__title">数据战绩</h2>
+      <span class="live-badge" id="liveBadge" data-state="loading">
+        <i></i><span>同步中</span>
+      </span>
+    </div>
+
+    <div class="stats__grid">
+      <div class="stat reveal">
+        <b class="stat__num" data-count="0" data-suffix="">0</b>
+        <span class="stat__label">B站粉丝</span>
+      </div>
+      <div class="stat reveal">
+        <b class="stat__num" data-count="0" data-suffix="">0</b>
+        <span class="stat__label">累计获赞</span>
+      </div>
+      <div class="stat reveal">
+        <b class="stat__num" data-count="0" data-suffix="">0</b>
+        <span class="stat__label">原创投稿</span>
+      </div>
+      <div class="stat reveal">
+        <b class="stat__num" data-count="0" data-suffix="">0</b>
+        <span class="stat__label">视频播放</span>
+      </div>
+    </div>
+
+    <p class="stats__note" id="statsNote"></p>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 作品墙 ══════════════════════════ -->
+<section class="works" id="works">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-head__no">02</span>
+      <h2 class="sec-head__title">作品墙</h2>
+      <a class="sec-head__link" href="https://space.bilibili.com/1004939949" target="_blank" rel="noopener">
+        前往 B 站空间 <i>↗</i>
+      </a>
+    </div>
+
+    <div class="filters" id="filters" role="tablist" aria-label="作品分类筛选"></div>
+
+    <div class="works__grid" id="worksGrid"></div>
+
+    <div class="works__more">
+      <button class="btn btn--ghost" id="loadMore" hidden>
+        <span>加载更多</span>
+        <i>＋</i>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 技术栈 ══════════════════════════ -->
+<section class="stack" id="stack">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-head__no">03</span>
+      <h2 class="sec-head__title">技术栈</h2>
+      <span class="sec-head__hint">点击展开</span>
+    </div>
+
+    <div class="stack__list" id="stackList"></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 工作室 ══════════════════════════ -->
+<section class="studio" id="studio">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-head__no">04</span>
+      <h2 class="sec-head__title">工作室</h2>
+    </div>
+    <div class="studio__grid" id="studioGrid"></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 历程 ══════════════════════════ -->
+<section class="timeline" id="timeline">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-head__no">05</span>
+      <h2 class="sec-head__title">创作历程</h2>
+    </div>
+    <ol class="tl" id="timelineList"></ol>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 联系 ══════════════════════════ -->
+<section class="contact" id="contact">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-head__no">06</span>
+      <h2 class="sec-head__title">联系</h2>
+    </div>
+
+    <h3 class="contact__big" data-split>Let's build something.</h3>
+
+    <div class="contact__grid" id="contactGrid"></div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot__creed">科技服务于人 · 人文点亮世界</div>
+    <div class="foot__meta">
+      <span>© <span id="year">2026</span> MillonW</span>
+      <span class="foot__sep"></span>
+      <span>狐学科技工作室 · 本析工作室</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/fallback.js"></script>
+<script src="assets/js/bili.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
