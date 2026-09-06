@@ -188,27 +188,49 @@
 
     function toggle(e) {
       var next = current() === 'dark' ? 'light' : 'dark';
+      var wipe = $('#themeWipe');
 
-      // 支持 View Transitions 且未要求减少动效 → 从点击处圆形扩散
-      if (document.startViewTransition && !reduced) {
-        var x = e && e.clientX ? e.clientX : window.innerWidth - 60;
-        var y = e && e.clientY ? e.clientY : 40;
-        var r = Math.hypot(
-          Math.max(x, window.innerWidth - x),
-          Math.max(y, window.innerHeight - y)
-        );
-        var t = document.startViewTransition(function () { apply(next); });
-        t.ready.then(function () {
-          root.animate(
-            { clipPath: ['circle(0px at ' + x + 'px ' + y + 'px)',
-                         'circle(' + r + 'px at ' + x + 'px ' + y + 'px)'] },
-            { duration: 680, easing: 'cubic-bezier(.76,0,.24,1)',
-              pseudoElement: '::view-transition-new(root)' }
-          );
-        }).catch(function () { /* 过渡失败也无妨，主题已切换 */ });
-      } else {
+      // 减少动效、或浏览器不支持 Web Animations → 直接切换
+      if (reduced || !wipe || typeof wipe.animate !== 'function') { apply(next); return; }
+
+      var x = e && e.clientX ? e.clientX : window.innerWidth - 60;
+      var y = e && e.clientY ? e.clientY : 40;
+      var r = Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y)
+      );
+
+      // 清掉上一轮残留动画，避免 fill:forwards 状态叠加
+      if (wipe.getAnimations) wipe.getAnimations().forEach(function (a) { a.cancel(); });
+
+      wipe.style.left = x + 'px';
+      wipe.style.top = y + 'px';
+      wipe.setAttribute('data-to', next);
+      // 动画期间收起带 mix-blend-mode 的图层，降低合成开销
+      document.body.classList.add('is-wiping');
+
+      // 用 transform 缩放走合成层；原来的 clip-path 动画每帧都要重绘整页快照，
+      // 再叠加页面里的 mix-blend-mode 与 backdrop-filter，必然掉帧
+      var grow = wipe.animate(
+        { transform: ['scale(0)', 'scale(' + (r / 60) + ')'], opacity: [1, 1] },
+        { duration: 520, easing: 'cubic-bezier(.7,0,.3,1)', fill: 'forwards' }
+      );
+
+      grow.onfinish = function () {
+        // 遮罩已铺满：关掉过渡再换色，让新配色瞬间生效，
+        // 这样遮罩淡出时看到的是最终色，不会残留颜色渐变
+        document.body.classList.add('theme-switching');
         apply(next);
-      }
+        void document.body.offsetWidth; // 强制回流，确保新色立即落地
+        document.body.classList.remove('theme-switching');
+
+        var fade = wipe.animate({ opacity: [1, 0] },
+          { duration: 300, easing: 'ease-out', fill: 'forwards' });
+        fade.onfinish = function () {
+          if (wipe.getAnimations) wipe.getAnimations().forEach(function (a) { a.cancel(); });
+          document.body.classList.remove('is-wiping');
+        };
+      };
     }
 
     return { init: init, current: current, toggle: toggle };
@@ -428,15 +450,6 @@
       }
     }
 
-    var note = $('#statsNote');
-    if (note) {
-      if (source === 'live') {
-        note.textContent = '数据由 B 站接口实时返回';
-      } else {
-        note.textContent = 'B 站接口在静态站点下受跨域与风控限制，当前展示 '
-          + videos.length + ' 条兜底作品数据 · 配置代理后可切换为真·实时';
-      }
-    }
   }
 
   /* ══════════════════════════════════════════════════
@@ -725,41 +738,66 @@
    * 11. 装饰动效：光标 / 聚光 / 进度条
    * ══════════════════════════════════════════════════ */
   function initCursor() {
-    var cur = $('#cursor');
+    var cur = $('#cursor');      // 小点：零延迟，直接对齐鼠标
+    var ring = $('#cursorRing'); // 大环：轻缓动，保留质感
     var spot = $('#spotlight');
-    if (!cur && !spot) return;
+    var spotIn = spot ? $('i', spot) : null;
+    if (!cur && !ring && !spotIn) return;
 
     var mx = window.innerWidth / 2, my = window.innerHeight / 2;
-    var cx = mx, cy = my;
+    var rx = mx, ry = my;
     var raf = null;
+    var on = false;
+    var EASE = 0.3;
 
-    function loop() {
-      // 缓动跟随，制造"丝滑延迟"的质感
-      cx += (mx - cx) * 0.16;
-      cy += (my - cy) * 0.16;
-      if (cur) cur.style.transform = 'translate3d(' + cx + 'px,' + cy + 'px,0)';
-      if (spot) {
-        spot.style.setProperty('--mx', mx + 'px');
-        spot.style.setProperty('--my', my + 'px');
-      }
-      raf = requestAnimationFrame(loop);
+    // 关键：所有样式写入都集中在 rAF 回调里，mousemove 只记坐标。
+    // 之前在 mousemove 回调里直接写 transform，与渲染节奏不同步，
+    // 鼠标微动时就会出现抽搐与停顿。
+    function frame() {
+      raf = null;
+      var dx = mx - rx, dy = my - ry;
+
+      // 位移很小时加大收敛系数，避免"动一下、停一下"的拖尾感
+      var k = (Math.abs(dx) + Math.abs(dy)) < 6 ? 0.6 : EASE;
+      rx += dx * k;
+      ry += dy * k;
+
+      var settled = Math.abs(mx - rx) < 0.2 && Math.abs(my - ry) < 0.2;
+      if (settled) { rx = mx; ry = my; }
+
+      if (cur) cur.style.transform = 'translate3d(' + mx + 'px,' + my + 'px,0)';
+      if (ring) ring.style.transform = 'translate3d(' + rx + 'px,' + ry + 'px,0)';
+      if (spotIn) spotIn.style.transform = 'translate3d(' + mx + 'px,' + my + 'px,0)';
+
+      // 追上后停掉 rAF，等下次移动再启动，不空转占用主线程
+      if (!settled) raf = requestAnimationFrame(frame);
     }
 
     if (!isTouch && !reduced) {
       window.addEventListener('mousemove', function (e) {
         mx = e.clientX; my = e.clientY;
-        if (cur) cur.classList.add('is-on');
-        if (spot) spot.classList.add('is-on');
-        if (!raf) loop();
+        if (!on) {
+          on = true;
+          if (cur) cur.classList.add('is-on');
+          if (ring) ring.classList.add('is-on');
+          if (spot) spot.classList.add('is-on');
+        }
+        if (!raf) raf = requestAnimationFrame(frame);
       }, { passive: true });
 
       // 悬停可交互元素时放大光标
       var hot = 'a, button, .card, .filter, .stack__head, .ct';
       document.addEventListener('mouseover', function (e) {
-        if (e.target.closest && e.target.closest(hot)) cur.classList.add('is-hot');
+        if (e.target.closest && e.target.closest(hot)) {
+          if (cur) cur.classList.add('is-hot');
+          if (ring) ring.classList.add('is-hot');
+        }
       });
       document.addEventListener('mouseout', function (e) {
-        if (e.target.closest && e.target.closest(hot)) cur.classList.remove('is-hot');
+        if (e.target.closest && e.target.closest(hot)) {
+          if (cur) cur.classList.remove('is-hot');
+          if (ring) ring.classList.remove('is-hot');
+        }
       });
     }
   }
@@ -792,6 +830,238 @@
   }
 
   /* ══════════════════════════════════════════════════
+   * 11b. 章节指示器：右侧圆点，指示当前章节并可跳转
+   * ══════════════════════════════════════════════════ */
+  function initSecDots() {
+    var box = $('#secDots');
+    if (!box) return;
+    var secs = $$('main section[id]');
+    if (!secs.length) return;
+
+    var LABEL = {
+      hero: '首页', stats: '战绩', works: '作品', stack: '技术',
+      studio: '工作室', timeline: '历程', contact: '联系'
+    };
+
+    var dots = secs.map(function (sec) {
+      var head = sec.querySelector('.sec-head__title');
+      var text = LABEL[sec.id] || (head ? head.textContent : '') || sec.id;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sec-dot';
+      b.innerHTML = '<span class="sec-dot__label"></span><span class="sec-dot__mark"></span>';
+      b.firstChild.textContent = text;
+      b.setAttribute('aria-label', '跳转到 ' + text);
+      b.addEventListener('click', function () {
+        var top = sec.getBoundingClientRect().top + window.scrollY - 68;
+        window.scrollTo({ top: top, behavior: reduced ? 'auto' : 'smooth' });
+      });
+      box.appendChild(b);
+      return b;
+    });
+
+    if (!('IntersectionObserver' in window)) return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var idx = secs.indexOf(en.target);
+        dots.forEach(function (d, i) { d.classList.toggle('is-active', i === idx); });
+      });
+    }, { rootMargin: '-45% 0px -45% 0px' });
+    secs.forEach(function (s) { io.observe(s); });
+  }
+
+  /* ══════════════════════════════════════════════════
+   * 11c. 作品卡 3D 倾斜 + 光泽扫过（仅精确指针设备）
+   * ══════════════════════════════════════════════════ */
+  function initTilt() {
+    var grid = $('#worksGrid');
+    if (!grid || isTouch || reduced) return;
+    var raf = null, card = null, px = 0, py = 0;
+
+    function media(el) { return el ? el.querySelector('.card__media') : null; }
+    function reset(m) {
+      if (!m) return;
+      m.style.removeProperty('--rx');
+      m.style.removeProperty('--ry');
+      m.style.removeProperty('--gx');
+      m.style.removeProperty('--gy');
+    }
+
+    function apply() {
+      raf = null;
+      var m = media(card);
+      if (!m) return;
+      var r = m.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      var dx = (px - r.left) / r.width - 0.5;
+      var dy = (py - r.top) / r.height - 0.5;
+      m.style.setProperty('--rx', (-dy * 7).toFixed(2) + 'deg');
+      m.style.setProperty('--ry', (dx * 8).toFixed(2) + 'deg');
+      m.style.setProperty('--gx', ((dx + 0.5) * 100).toFixed(1) + '%');
+      m.style.setProperty('--gy', ((dy + 0.5) * 100).toFixed(1) + '%');
+    }
+
+    grid.addEventListener('mousemove', function (e) {
+      var c = e.target.closest ? e.target.closest('.card') : null;
+      if (c !== card) reset(media(card));
+      card = c; px = e.clientX; py = e.clientY;
+      if (!raf) raf = requestAnimationFrame(apply);
+    }, { passive: true });
+
+    grid.addEventListener('mouseleave', function () {
+      reset(media(card));
+      card = null;
+    });
+  }
+
+  /* ══════════════════════════════════════════════════
+   * 11d. 首屏视差：头像与标题随鼠标反向轻微位移
+   *      用独立的 translate 属性，不覆盖入场动画的 transform
+   * ══════════════════════════════════════════════════ */
+  function initHeroParallax() {
+    if (isTouch || reduced) return;
+    var layers = [
+      [$('.hero__avatar'), 16],
+      [$('.hero__title'), -9],
+      [$('.creed'), -5]
+    ].filter(function (l) { return l[0]; });
+    if (!layers.length) return;
+
+    var raf = null;
+    var tx = 0, ty = 0;   // 目标：视口归一化坐标（-0.5 ~ 0.5）
+    var cx = 0, cy = 0;   // 当前：缓动逼近目标
+
+    function frame() {
+      raf = null;
+      cx += (tx - cx) * 0.1;
+      cy += (ty - cy) * 0.1;
+      // 收敛到目标后精确贴合并停掉 rAF，避免空转
+      var settled = Math.abs(tx - cx) < 0.002 && Math.abs(ty - cy) < 0.002;
+      if (settled) { cx = tx; cy = ty; }
+      layers.forEach(function (l) {
+        l[0].style.translate =
+          (cx * l[1]).toFixed(2) + 'px ' + (cy * l[1]).toFixed(2) + 'px';
+      });
+      if (!settled) raf = requestAnimationFrame(frame);
+    }
+
+    // 监听整页：鼠标在窗口任意位置滑动，首屏元素都会反向轻移
+    // （不再只在首屏区域内才有反应）
+    window.addEventListener('mousemove', function (e) {
+      tx = (e.clientX / window.innerWidth) - 0.5;
+      ty = (e.clientY / window.innerHeight) - 0.5;
+      if (!raf) raf = requestAnimationFrame(frame);
+    }, { passive: true });
+
+    // 鼠标移出窗口：目标归零，由上面的缓动平滑归位，不再瞬间抽搐
+    document.addEventListener('mouseleave', function () {
+      tx = 0; ty = 0;
+      if (!raf) raf = requestAnimationFrame(frame);
+    });
+  }
+
+  /* ══════════════════════════════════════════════════
+   * 11e. 彩蛋
+   * ══════════════════════════════════════════════════ */
+
+  /* Konami：↑↑↓↓←→←→BA */
+  function initKonami() {
+    var SEQ = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+               'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+    var pos = 0;
+    document.addEventListener('keydown', function (e) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      pos = (k === SEQ[pos]) ? pos + 1 : (k === SEQ[0] ? 1 : 0);
+      // 已经输入过半，判定为在输序列，拦掉方向键避免页面跟着滚
+      if (pos >= 4 && (k.indexOf('Arrow') === 0 || k === 'b' || k === 'a')) {
+        e.preventDefault();
+      }
+      if (pos === SEQ.length) { pos = 0; glitch(); }
+    });
+  }
+
+  function glitch() {
+    toast('隐藏开关已触发');
+    if (reduced) return;
+    document.body.classList.remove('is-glitch');
+    void document.body.offsetWidth; // 重启动画
+    document.body.classList.add('is-glitch');
+    setTimeout(function () { document.body.classList.remove('is-glitch'); }, 1300);
+  }
+
+  /* 头像三连击：反色脉冲环 */
+  function initAvatarEgg() {
+    var avatar = $('.hero__avatar');
+    if (!avatar) return;
+    var hits = 0, timer = null;
+    avatar.addEventListener('click', function (e) {
+      var x = e.clientX || window.innerWidth / 2;
+      var y = e.clientY || 200;
+      hits++;
+      clearTimeout(timer);
+      timer = setTimeout(function () { hits = 0; }, 900);
+      if (hits >= 3) { hits = 0; pulse(x, y); }
+    });
+  }
+
+  function pulse(x, y) {
+    toast('别戳了');
+    if (reduced) return;
+    for (var i = 0; i < 3; i++) {
+      (function (i) {
+        setTimeout(function () {
+          var d = document.createElement('div');
+          var size = 200 + i * 90;
+          d.className = 'pulse-ring';
+          d.style.width = size + 'px';
+          d.style.height = size + 'px';
+          d.style.left = x + 'px';
+          d.style.top = y + 'px';
+          document.body.appendChild(d);
+          setTimeout(function () {
+            if (d.parentNode) d.parentNode.removeChild(d);
+          }, 900);
+        }, i * 130);
+      })(i);
+    }
+  }
+
+  /* 快捷键：T 切换黑白主题 */
+  function initHotkeys() {
+    document.addEventListener('keydown', function (e) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      var t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' ||
+                t.isContentEditable)) return;
+      if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
+        Theme.toggle({ clientX: window.innerWidth - 60, clientY: 40 });
+      }
+    });
+  }
+
+  /* 控制台欢迎语 */
+  function consoleArt() {
+    if (!window.console || !console.log) return;
+    console.log('%c MILLONW ', 'background:#000;color:#fff;font-size:15px;' +
+      'font-weight:bold;padding:5px 9px;letter-spacing:2px');
+    console.log('%c科技服务于人 · 人文点亮世界',
+      'color:#666;font-size:12px;padding:4px 0');
+    console.log('%c快捷键：T 切换黑白主题', 'color:#999;font-size:11px');
+    console.log('%c彩蛋：试试方向键 ↑↑↓↓←→←→BA，或连点头像三下',
+      'color:#bbb;font-size:11px');
+  }
+
+  function initEggs() {
+    initKonami();
+    initAvatarEgg();
+    initHotkeys();
+    consoleArt();
+  }
+
+  /* ══════════════════════════════════════════════════
    * 12. 启动
    * ══════════════════════════════════════════════════ */
   function boot() {
@@ -814,6 +1084,10 @@
     initCursor();
     initProgress();
     initRotator();
+    initSecDots();
+    initTilt();
+    initHeroParallax();
+    initEggs();
 
     // 首屏文字拆分，等待预加载结束后触发动画
     $$('[data-split]').forEach(splitText);

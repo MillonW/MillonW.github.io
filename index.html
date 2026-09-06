@@ -37,10 +37,17 @@
 <!-- ══════════════════════════ 装饰层 ══════════════════════════ -->
 <div class="grain" aria-hidden="true"></div>
 <div class="grid-bg" aria-hidden="true"><div class="grid-bg__inner"></div></div>
-<div class="spotlight" id="spotlight" aria-hidden="true"></div>
+<div class="spotlight" id="spotlight" aria-hidden="true"><i></i></div>
 
+<!-- 主题切换：用 GPU 加速的圆形遮罩替代 clip-path 动画 -->
+<div class="theme-wipe" id="themeWipe" aria-hidden="true"></div>
+
+<div class="cursor-ring" id="cursorRing" aria-hidden="true"><i></i></div>
 <div class="cursor" id="cursor" aria-hidden="true"><i></i></div>
 <div class="scroll-progress" aria-hidden="true"><i id="scrollBar"></i></div>
+
+<!-- 章节指示器：桌面端显示，指示当前所在章节并可跳转 -->
+<nav class="sec-dots" id="secDots" aria-label="章节导航"></nav>
 
 <!-- ══════════════════════════ 导航 ══════════════════════════ -->
 <!-- 浮动控件：页面较长，导航自动隐藏后仍可随时切主题 / 回顶部 -->
@@ -221,7 +228,6 @@
       </div>
     </div>
 
-    <p class="stats__note" id="statsNote"></p>
   </div>
 </section>
 

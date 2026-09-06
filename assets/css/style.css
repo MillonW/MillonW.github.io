@@ -82,6 +82,7 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none;
   transition: background-color .55s var(--ease), color .55s var(--ease);
 }
 
@@ -164,10 +165,19 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  overflow: hidden;
   opacity: 0;
   transition: opacity .6s var(--ease);
-  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%),
-              var(--spot), transparent 70%);
+}
+/* 固定尺寸的光晕用 transform 移动：只走合成层，不会每帧重绘渐变 */
+.spotlight i {
+  position: absolute;
+  top: 0; left: 0;
+  width: 840px; height: 840px;
+  margin: -420px 0 0 -420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--spot), transparent 70%);
+  will-change: transform;
 }
 .spotlight.is-on { opacity: 1; }
 
@@ -187,7 +197,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   transform-origin: left;
 }
 
-/* 自定义光标 */
+/* 自定义光标：小点实时跟随 + 大环缓动跟随 */
 .cursor {
   position: fixed;
   top: 0; left: 0;
@@ -196,19 +206,159 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   mix-blend-mode: difference;
   opacity: 0;
   transition: opacity .3s var(--ease);
+  will-change: transform;
 }
 .cursor i {
   display: block;
-  width: 26px; height: 26px;
-  margin: -13px 0 0 -13px;
-  border: 1px solid #fff;
+  width: 6px; height: 6px;
+  margin: -3px 0 0 -3px;
+  background: #fff;
   border-radius: 50%;
-  transition: transform .35s var(--ease-io), background-color .35s var(--ease);
+  transition: transform .22s var(--ease-io);
 }
 .cursor.is-on { opacity: 1; }
-.cursor.is-hot i {
+.cursor.is-hot i { transform: scale(2.6); }
+
+.cursor-ring {
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 9998;
+  pointer-events: none;
+  mix-blend-mode: difference;
+  opacity: 0;
+  transition: opacity .3s var(--ease);
+  will-change: transform;
+}
+.cursor-ring i {
+  display: block;
+  width: 30px; height: 30px;
+  margin: -15px 0 0 -15px;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  transition: transform .3s var(--ease-io), background-color .3s var(--ease);
+}
+.cursor-ring.is-on { opacity: 1; }
+.cursor-ring.is-hot i {
   transform: scale(2.1);
-  background: rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .16);
+}
+
+/* 章节指示器 */
+.sec-dots {
+  position: fixed;
+  right: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: flex-end;
+}
+.sec-dot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: var(--fg-dim);
+  font: inherit;
+}
+.sec-dot__label {
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(8px);
+  transition: opacity .3s var(--ease), transform .35s var(--ease-io);
+}
+.sec-dot__mark {
+  flex: none;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--fg-dim);
+  transition: transform .4s var(--ease-io), background-color .4s var(--ease),
+              border-color .4s var(--ease);
+}
+.sec-dot:hover .sec-dot__label,
+.sec-dot:focus-visible .sec-dot__label { opacity: 1; transform: none; }
+.sec-dot.is-active .sec-dot__mark {
+  background: var(--fg);
+  border-color: var(--fg);
+  transform: scale(1.55);
+}
+.sec-dot.is-active .sec-dot__label { opacity: 1; transform: none; color: var(--fg); }
+
+/* 主题切换遮罩：transform 缩放走合成层，替代 clip-path（后者每帧重绘整页） */
+.theme-wipe {
+  position: fixed;
+  top: 0; left: 0;
+  width: 120px; height: 120px;
+  margin: -60px 0 0 -60px;
+  border-radius: 50%;
+  z-index: 9990;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0);
+  will-change: transform, opacity;
+}
+.theme-wipe[data-to="dark"] { background: #000; }
+.theme-wipe[data-to="light"] { background: #fff; }
+
+/* 切换动画期间收起带 mix-blend-mode 的图层，减少合成开销 */
+body.is-wiping .cursor,
+body.is-wiping .cursor-ring,
+body.is-wiping .spotlight { opacity: 0 !important; }
+
+/* 切换瞬间禁用颜色过渡，让新配色立即生效，避免遮罩淡出后仍在渐变 */
+.theme-switching, .theme-switching * { transition: none !important; }
+
+/* ─────────── 彩蛋 ─────────── */
+/* Konami：扫描线 + 抖动。只抖 main，避免位移 body 导致 fixed 元素错位 */
+body.is-glitch main { animation: glitchShake .4s steps(2, end) 2; }
+body.is-glitch::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9995;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    color-mix(in srgb, var(--fg) 14%, transparent) 0 1px,
+    transparent 1px 4px
+  );
+  mix-blend-mode: difference;
+  animation: glitchScan .26s steps(3, end) 4;
+}
+@keyframes glitchShake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  25%      { transform: translate3d(-3px, 1px, 0); }
+  50%      { transform: translate3d(2px, -2px, 0); }
+  75%      { transform: translate3d(-2px, 2px, 0); }
+}
+@keyframes glitchScan {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  33%      { transform: translate3d(0, -7px, 0); }
+  66%      { transform: translate3d(0, 6px, 0); }
+}
+
+/* 头像三连击：反色脉冲环 */
+.pulse-ring {
+  position: fixed;
+  z-index: 9994;
+  pointer-events: none;
+  border-radius: 50%;
+  border: 2px solid var(--fg);
+  mix-blend-mode: difference;
+  animation: pulseOut .85s var(--ease-out) forwards;
+}
+@keyframes pulseOut {
+  from { transform: translate(-50%, -50%) scale(.2); opacity: 1; }
+  to   { transform: translate(-50%, -50%) scale(1); opacity: 0; }
 }
 
 /* ─────────────── 4. 预加载 ─────────────── */
@@ -985,6 +1135,27 @@ section { position: relative; z-index: 1; }
 .card__img.is-loaded { opacity: 1; }
 .card:hover .card__img { transform: scale(1.07); filter: contrast(1.16) brightness(1.05); }
 
+/* 作品卡 3D 倾斜 + 光泽：仅在精确指针设备启用，触摸设备不参与 */
+@media (hover: hover) and (pointer: fine) {
+  .card__media {
+    transform: perspective(760px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transition: transform .3s var(--ease-out);
+  }
+  .card:hover .card__media { transition-duration: .14s; }
+  .card__media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(230px circle at var(--gx, 50%) var(--gy, 50%),
+                color-mix(in srgb, var(--fg) 18%, transparent), transparent 64%);
+    transition: opacity .35s var(--ease);
+  }
+  .card:hover .card__media::after { opacity: 1; }
+}
+
 /* 图片加载失败时的极简占位：不让版面塌陷 */
 .card__fallback {
   position: absolute;
@@ -1461,6 +1632,8 @@ section { position: relative; z-index: 1; }
   .stat:nth-child(2) { border-right: 1px solid var(--line); }
   .stat:nth-child(3) { border-left: 1px solid var(--line); }
   .stack__panel-inner { grid-template-columns: 1fr; }
+  /* 章节指示器只在中大屏出现，避免与内容抢空间 */
+  .sec-dots { display: none; }
 }
 
 @media (max-width: 768px) {
@@ -1480,6 +1653,16 @@ section { position: relative; z-index: 1; }
   .contact__grid { grid-template-columns: 1fr; }
   .studio__card { min-height: 0; }
   .studio__no { margin-bottom: 30px; }
+
+  /* 移动端：关掉毛玻璃，滚动与内存占用明显更稳 */
+  .card__view {
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--bg) 93%, transparent);
+  }
+  /* 入场位移收小，弱机也不容易掉帧 */
+  .reveal { transform: translateY(16px); }
+  /* 触摸目标加大，贴近 44px 舒适区 */
+  .filter { padding: 11px 18px; }
 }
 
 @media (max-width: 480px) {
@@ -1497,7 +1680,13 @@ section { position: relative; z-index: 1; }
 
 /* 触摸设备：隐藏自定义光标 */
 @media (hover: none), (pointer: coarse) {
-  .cursor { display: none; }
+  .cursor, .cursor-ring { display: none; }
+}
+
+/* 全面屏安全区：底部控件不被系统手势条遮挡 */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .fab { bottom: calc(clamp(14px, 2.6vw, 32px) + env(safe-area-inset-bottom)); }
+  .foot { padding-bottom: calc(clamp(34px, 4vw, 52px) + env(safe-area-inset-bottom)); }
 }
 
 /* ─────────────── 17. 主题切换过渡 ─────────────── */
@@ -1521,6 +1710,9 @@ section { position: relative; z-index: 1; }
   [data-split] .ch { opacity: 1 !important; transform: none !important; }
   .creed__line[data-creed] > span { transform: none !important; }
   .grid-bg, .grain { display: none; }
+  /* 3D 倾斜与视差在 JS 层已跳过，这里兜底确保无残留位移 */
+  .card__media { transform: none !important; }
+  .hero__avatar, .hero__title, .creed { translate: none !important; }
 }
 
 /* 打印 */
