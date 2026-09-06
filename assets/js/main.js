@@ -329,14 +329,26 @@
     var started = false;
 
     function markReady() {
+      // 幂等：避免多个事件 / readyState 路径都走到这里时重复加 class
+      if (loaded) return;
       loaded = true;
       wrap.classList.add('is-ready');
     }
-    video.addEventListener('loadeddata', markReady);
-    video.addEventListener('error', function () {
-      wrap.classList.add('is-static');
-      loaded = true;  // 让流程不卡住
-    });
+
+    // 关键修复：CDN/浏览器命中缓存时，loadeddata/canplay 可能在
+    // 我们注册监听器之前就已触发过 → 必须先看 readyState，否则永远等不到
+    // HAVE_CURRENT_DATA = 2（HAVE_FUTURE_DATA=3 也可以播放，但 2 够用来"加载完成"判定）
+    if (video.readyState >= 2) {
+      markReady();
+    } else {
+      video.addEventListener('loadeddata', markReady, { once: true });
+      // canplay 比 loadeddata 更稳：浏览器判断"现在可以播"时才触发
+      video.addEventListener('canplay', markReady, { once: true });
+      video.addEventListener('error', function () {
+        wrap.classList.add('is-static');
+        loaded = true;  // 让流程不卡住
+      }, { once: true });
+    }
 
     // Tab 切到后台时暂停，省 CPU / 电
     document.addEventListener('visibilitychange', function () {
@@ -351,8 +363,13 @@
           if (loaded) return resolve();
           var done = false;
           function finish() { if (!done) { done = true; resolve(); } }
-          video.addEventListener('loadedmetadata', finish, { once: true });
-          video.addEventListener('error', finish, { once: true });
+          // 同样的 race condition 兜底：缓存命中时 loadedmetadata 已触发过
+          if (video.readyState >= 1) {
+            finish();
+          } else {
+            video.addEventListener('loadedmetadata', finish, { once: true });
+            video.addEventListener('error', finish, { once: true });
+          }
           setTimeout(finish, 3500);
         });
       },

@@ -29,7 +29,7 @@
      preload="metadata" 只抓头部几 KB，浏览器边播边拉数据
      触摸端/弱网/reduced-motion 由 JS 改用 .is-static（海报静态显示） -->
 <div class="bg-video" id="bgVideo" aria-hidden="true">
-  <video id="videoBg" preload="metadata" muted playsinline loop
+  <video id="videoBg" autoplay preload="metadata" muted playsinline loop
          poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900'%3E%3Crect width='1600' height='900' fill='%23000'/%3E%3Cpath d='M288 384 L544 1216 L800 640 L1056 1216 L1312 384' fill='none' stroke='%23fff' stroke-opacity='.08' stroke-width='224' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
     <source src="assets/video/background.mp4" type="video/mp4">
   </video>
