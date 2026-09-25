@@ -35,9 +35,14 @@ git push
 - 查构建状态：`gh api repos/MillonW/MillonW.github.io/pages`
 - 本机 curl 访问 HTTPS 必须加 `--ssl-no-revoke`（Windows schannel 吊销检查误报）
 - 本机 SSH 22 端口不通，443 端口可用
-- **`git push` 走 https 已恢复可用（2026-09-25 验证）**。之前长期被代理 502 拦截。
-  若再次遇到 push 超时/失败，改用 `.workbuddy/deploy_api.py` 走 Git Data REST API 兜底。
-  注意：main 的 push 偶发首次超时（SIGTERM），后台重试一次即成功，不必急着换方案。
+- **`git push` 走 https 是「间歇性」可用**（同一天内时通时断，被代理 502 拦是常态）。
+  错误形态：`CONNECT tunnel failed, response 502` / `Empty reply from server` / SIGTERM 超时。
+  应对顺序：先重试 1～2 次（常能过）→ 仍失败就走 REST API 兜底，
+  **不要**因为一次失败就判定"网络不通"（两种通道互不相通，git 挂的时候 API 往往是通的）。
+- **REST API 兜底推送**：`python .workbuddy/deploy_api.py <分支名>`（默认 main）
+  自动算改动文件、自动取本地 commit message。删除远程分支可用
+  `DELETE /repos/{repo}/git/refs/heads/<branch>`。
+  注意 `gh api` 在本机会报未认证，改用 python + `gh auth token` 直接调 API 更稳
 - 新建分支默认**只在本地**，必须 `git push -u origin <分支名>` 才会出现在 GitHub 上
 
 ## 项目约定
