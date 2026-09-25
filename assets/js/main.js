@@ -47,6 +47,12 @@
       desc: 'HarmonyOS 应用开发语言。面向鸿蒙生态的原生应用开发，探索声明式 UI 在多端场景下的表达力。',
       tags: ['HarmonyOS', '声明式 UI', '跨端'],
       bars: [['熟练度', 74], ['声明式 UI', 78], ['生态实践', 70]]
+    },
+    {
+      name: '全栈开发者', years: 'FULLSTACK',
+      desc: '覆盖从界面到服务器再到上线的完整链路。前端交互、后端接口、数据库与部署一个人打通，能把想法独立做成真正跑在网上的产品。',
+      tags: ['前端到后端', '数据库设计', '站点部署', '独立交付'],
+      bars: [['熟练度', 86], ['架构设计', 80], ['独立交付', 90]]
     }
   ];
 
@@ -253,7 +259,7 @@
     var value = 0;
     var label = '正在加载';
     var startTime = Date.now();
-    var minTime = 700;
+    var minTime = 1600;  // 保证预加载动画至少播放 1.6s，MILLONW stagger 动画总长约 1.37s
     var finished = false;
     var onDone = [];
 

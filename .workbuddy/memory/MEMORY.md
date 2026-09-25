@@ -35,10 +35,17 @@ git push
 - 查构建状态：`gh api repos/MillonW/MillonW.github.io/pages`
 - 本机 curl 访问 HTTPS 必须加 `--ssl-no-revoke`（Windows schannel 吊销检查误报）
 - 本机 SSH 22 端口不通，443 端口可用
+- **`git push` 走 https 已恢复可用（2026-09-25 验证）**。之前长期被代理 502 拦截。
+  若再次遇到 push 超时/失败，改用 `.workbuddy/deploy_api.py` 走 Git Data REST API 兜底。
+  注意：main 的 push 偶发首次超时（SIGTERM），后台重试一次即成功，不必急着换方案。
+- 新建分支默认**只在本地**，必须 `git push -u origin <分支名>` 才会出现在 GitHub 上
 
 ## 项目约定
 
 - 纯静态零构建，根目录 `.nojekyll` 必须保留
 - 脚本加载顺序固定：`fallback.js → bili.js → main.js`（fallback 必须先加载）
 - `assets/js/fallback.js` 是 B 站数据兜底层，**不能删**
-- 文案集中在 `assets/js/main.js` 顶部配置区，改文案不用碰 DOM
+- 文案大部分集中在 `assets/js/main.js` 顶部配置区（`SITE` / `STACK` / `STUDIOS` / `TIMELINE`），改文案不用碰 DOM
+- **例外**：首屏 `I build ___` 的轮播词在 `index.html` 的 `#roleRotator` 里（不在 main.js），
+  换词要改 HTML。切换间隔 2600ms 由 `initRotator()` 控制
+- 技术栈 `STACK` 的序号由 `renderStack()` 的 `pad2(i + 1)` 自动生成，增删项不用管编号
