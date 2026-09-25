@@ -311,81 +311,6 @@
     });
   }
 
-  // 视频背景控制器：自动判定是否降级为静态海报
-  function initBgVideo() {
-    var wrap = $('#bgVideo');
-    if (!wrap) return { preload: function(){return Promise.resolve();}, play: function(){} };
-
-    var reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var reducedData = matchMedia('(prefers-reduced-data: reduce)').matches;
-    var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    var slowNet = conn && /^(slow-2g|2g|3g)$/.test(conn.effectiveType || '');
-    var saveData = conn && conn.saveData;
-    var narrow = window.innerWidth < 720;
-    var touchOnly = matchMedia('(hover: none) and (pointer: coarse)').matches;
-
-    // 触摸端 / 弱网 / 减少动效 / 减少数据：降级为静态海报
-    if (reducedMotion || reducedData || saveData || slowNet || narrow || touchOnly) {
-      wrap.classList.add('is-static');
-      return { preload: function(){return Promise.resolve();}, play: function(){} };
-    }
-
-    var video = wrap.querySelector('video');
-    var loaded = false;
-    var started = false;
-
-    function markReady() {
-      // 幂等：避免多个事件 / readyState 路径都走到这里时重复加 class
-      if (loaded) return;
-      loaded = true;
-      wrap.classList.add('is-ready');
-    }
-
-    // 关键修复：CDN/浏览器命中缓存时，loadeddata/canplay 可能在
-    // 我们注册监听器之前就已触发过 → 必须先看 readyState，否则永远等不到
-    // HAVE_CURRENT_DATA = 2（HAVE_FUTURE_DATA=3 也可以播放，但 2 够用来"加载完成"判定）
-    if (video.readyState >= 2) {
-      markReady();
-    } else {
-      video.addEventListener('loadeddata', markReady, { once: true });
-      // canplay 比 loadeddata 更稳：浏览器判断"现在可以播"时才触发
-      video.addEventListener('canplay', markReady, { once: true });
-      video.addEventListener('error', function () {
-        wrap.classList.add('is-static');
-        loaded = true;  // 让流程不卡住
-      }, { once: true });
-    }
-
-    // Tab 切到后台时暂停，省 CPU / 电
-    document.addEventListener('visibilitychange', function () {
-      if (!loaded) return;
-      if (document.hidden) video.pause();
-      else if (started) video.play().catch(function(){});
-    });
-
-    return {
-      preload: function () {
-        return new Promise(function (resolve) {
-          if (loaded) return resolve();
-          var done = false;
-          function finish() { if (!done) { done = true; resolve(); } }
-          // 同样的 race condition 兜底：缓存命中时 loadedmetadata 已触发过
-          if (video.readyState >= 1) {
-            finish();
-          } else {
-            video.addEventListener('loadedmetadata', finish, { once: true });
-            video.addEventListener('error', finish, { once: true });
-          }
-          setTimeout(finish, 3500);
-        });
-      },
-      play: function () {
-        if (!loaded || started) return;
-        started = true;
-        video.play().catch(function(){});
-      }
-    };
-  }
 
   /* ══════════════════════════════════════════════════
    * 4. 导航
@@ -1238,7 +1163,6 @@
     loader.set(0.16, '加载资源');
 
     // 异步部分：进度随真实加载推进
-    var bg = initBgVideo();
     var tasks = [];
 
     // 头像：作为首屏关键资源显式 preload
@@ -1246,9 +1170,9 @@
       loader.set(0.5, '头像就绪');
     }));
 
-    // 视频背景元数据（preload=metadata 只取头部几 KB）
-    tasks.push(bg.preload().then(function () {
-      loader.set(0.78, '视频就绪');
+    // 背景图（背景已改为静态图片，不再有视频）
+    tasks.push(loadImage('assets/img/bg-poster.jpg').then(function () {
+      loader.set(0.78, '背景就绪');
     }));
 
     // B 站数据：成功才计入进度，失败也不卡
@@ -1286,7 +1210,6 @@
       p.classList.add('is-done');
       document.body.classList.remove('is-locked');
       startHeroAnimation();
-      bg.play();
     });
   }
 

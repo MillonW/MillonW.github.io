@@ -125,10 +125,10 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 /* ─────────────── 3. 装饰层 ─────────────── */
 
-/* 视频背景：固定全屏，z-index -1 位于所有装饰层之下
-   .is-ready 表示视频可以播放（已 readyState >= HAVE_CURRENT_DATA）
-   .is-static 表示降级到海报（触摸端/弱网/reduced-motion） */
-.bg-video {
+/* 背景图（静态）：固定全屏，z-index -1 位于所有装饰层之下
+   背景已从视频改为纯静态图片（视频第一帧），不再有 video 元素，
+   也就不需要 .is-ready / .is-static 这套播放状态类 */
+.bg-still {
   position: fixed;
   inset: 0;
   z-index: -1;
@@ -136,24 +136,15 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   overflow: hidden;
   background: var(--bg);
 }
-.bg-video video {
+.bg-still img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* poster 现在是真实图片（视频第一帧），首屏立刻可见，
-     不需要再等 JS 加 .is-ready。opacity 和视频播放态保持一致（.42），
-     这样加载前后亮度无跳变。 */
+  /* 与原来视频播放态的亮度保持一致（.42） */
   opacity: .42;
-  transition: opacity 1.4s var(--ease);
-  /* 提示浏览器这是背景视频，可走硬件加速合成层 */
-  will-change: opacity;
-  transform: translateZ(0);
 }
-.bg-video.is-ready video { opacity: .42; }
-/* 静态降级（不播放视频，只显示海报）：海报清晰显示，不被压暗 */
-.bg-video.is-static video { opacity: .65; }
 /* 半透膜：保证浅色主题下文字依然清晰 */
-.bg-video__veil {
+.bg-still__veil {
   position: absolute;
   inset: 0;
   background: linear-gradient(180deg,
@@ -161,13 +152,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
               color-mix(in srgb, var(--bg) 88%, transparent));
   mix-blend-mode: normal;
 }
-/* 减少动效 / 弱数据偏好：关掉淡入淡出与视频 */
-@media (prefers-reduced-motion: reduce) {
-  .bg-video { display: none; }
-}
-@media (prefers-reduced-data: reduce) {
-  .bg-video { display: none; }
-}
+/* 静态图片本身没有动效，reduced-motion / reduced-data 下保持显示，
+   不再隐藏（原本隐藏是为了关掉视频播放） */
 
 .grain {
   position: fixed;
@@ -1754,7 +1740,7 @@ section { position: relative; z-index: 1; }
     forced-color-adjust: auto;
   }
   .btn::before, .e404__home::before { background: CanvasText; }
-  .grain, .grid-bg, .spotlight, .bg-video { display: none; }
+  .grain, .grid-bg, .spotlight, .bg-still { display: none; }
 }
 
 /* ─────────────── 17c. 折叠屏 / 超宽屏 ─────────────── */
@@ -1787,7 +1773,8 @@ section { position: relative; z-index: 1; }
   .reveal, .card { opacity: 1 !important; transform: none !important; }
   [data-split] .ch { opacity: 1 !important; transform: none !important; }
   .creed__line[data-creed] > span { transform: none !important; }
-  .grid-bg, .grain, .bg-video { display: none !important; }
+  /* 背景是静态图片，没有动效，这里不再隐藏它 */
+  .grid-bg, .grain { display: none !important; }
   /* 3D 倾斜与视差在 JS 层已跳过，这里兜底确保无残留位移 */
   .card__media { transform: none !important; }
   .hero__avatar, .hero__title, .creed { translate: none !important; }
