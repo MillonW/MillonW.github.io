@@ -20,7 +20,8 @@
 <link rel="preconnect" href="https://i0.hdslb.com">
 <link rel="preconnect" href="https://i1.hdslb.com">
 <link rel="preconnect" href="https://i2.hdslb.com">
-<link rel="stylesheet" href="assets/css/style.css">
+<!-- 版本号 v3：改过 CSS/JS 必须同步 +1，否则用户浏览器会一直用旧缓存 -->
+<link rel="stylesheet" href="assets/css/style.css?v=3">
 </head>
 <body>
 
@@ -29,8 +30,12 @@
      - fetchpriority="high" 让浏览器优先抓这张图，首屏更快
      - decoding="async" 避免解码阻塞主线程
      - __veil 半透膜保证浅色主题下文字依然清晰 -->
-<div class="bg-still" aria-hidden="true">
-  <img src="assets/img/bg-poster.jpg" alt="" fetchpriority="high" decoding="async">
+<!-- 内联样式是兜底：万一 CSS 是旧缓存（没有 .bg-still 规则），
+     图片也不会退化成"原尺寸小图挤在左上角、把页面内容往下顶" -->
+<div class="bg-still" aria-hidden="true"
+     style="position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden">
+  <img src="assets/img/bg-poster.jpg" alt="" fetchpriority="high" decoding="async"
+       style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.42">
   <div class="bg-still__veil"></div>
 </div>
 
@@ -330,8 +335,8 @@
   </div>
 </footer>
 
-<script src="assets/js/fallback.js"></script>
-<script src="assets/js/bili.js"></script>
-<script src="assets/js/main.js"></script>
+<script src="assets/js/fallback.js?v=3"></script>
+<script src="assets/js/bili.js?v=3"></script>
+<script src="assets/js/main.js?v=3"></script>
 </body>
 </html>
