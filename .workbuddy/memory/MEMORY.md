@@ -59,3 +59,10 @@ git push
   `background.mp4` 和 `initBgVideo()` 整套视频逻辑已删除。换背景图直接替换这个 jpg 即可。
   .media query 约定：reduced-motion/reduced-data 下**不隐藏**背景（静态无动效）；
   forced-colors 下**隐藏**（保证高对比度可读性）
+- **改完 CSS/JS 必须 bump 版本号**：`index.html` 与 `404.html` 里引用写作
+  `assets/css/style.css?v=N`、`assets/js/{fallback,bili,main}.js?v=N`（当前 v3）。
+  不加版本号用户浏览器会一直用旧缓存 → 出现「新 HTML 配旧 CSS」的错乱。
+  （2026-09-25 踩过：CSS 缓存旧版无 `.bg-still` 规则，背景图退化成
+  720×404 小图挤在左上角并把整页内容往下顶）
+- 全屏背景类元素建议同时写内联样式兜底（`position:fixed;inset:0;z-index:-1`），
+  即使 CSS 是旧缓存或加载失败，也不会把页面撑坏
