@@ -54,3 +54,8 @@ git push
 - **例外**：首屏 `I build ___` 的轮播词在 `index.html` 的 `#roleRotator` 里（不在 main.js），
   换词要改 HTML。切换间隔 2600ms 由 `initRotator()` 控制
 - 技术栈 `STACK` 的序号由 `renderStack()` 的 `pad2(i + 1)` 自动生成，增删项不用管编号
+- **背景是静态图片，不是视频**（2026-09-25 起）：
+  图片 `assets/img/bg-poster.jpg`（27KB，原视频第一帧），容器 `.bg-still` + `.bg-still__veil`。
+  `background.mp4` 和 `initBgVideo()` 整套视频逻辑已删除。换背景图直接替换这个 jpg 即可。
+  .media query 约定：reduced-motion/reduced-data 下**不隐藏**背景（静态无动效）；
+  forced-colors 下**隐藏**（保证高对比度可读性）
